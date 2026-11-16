@@ -172,46 +172,6 @@ AGO_EC50_CHEMBL5564027,agonist,0.6883123907066034
 AGO_EC50_CHEMBL5406251,agonist,0.7907197073103851
 ```
 
-**How the two values are obtained.** The workflow trains 50 LibSVM models
-(nu-SVC, RBF kernel, γ = 0.19, ν = 0.1, probability estimates enabled). Each
-model sees a different class-balanced subsample of the training set, drawn with
-a different random seed (1 to 50), which keeps the agonist/antagonist imbalance
-from biasing the classifier. For each compound:
-
-- `prediction` is the **majority vote** across the 50 models;
-- `probability` is the **mean P(agonist)** over the 50 models when the
-  prediction is `agonist`, and `1 − mean P(agonist)` when it is `antagonist`,
-  so the value always refers to the class that was actually predicted.
-
-**Reading the confidence.** Values close to 1 mean the ensemble agrees and is
-confident; values close to 0.5 mean the models disagree and the compound sits
-near the decision boundary — treat those predictions as undecided rather than
-weak-but-valid. Vote counts and the per-model breakdown are kept in the raw
-KNIME table, which `--keep-temp` preserves as `predictions_raw.csv`:
-
-```csv
-"RowID_Arr[0]","Mode(Prediction (LABEL))","Unique concatenate with count(Prediction (LABEL))","Mean(P (LABEL=a))"
-"Row0","a","a(42), i(8)",0.6242728629739845
-```
-
-Here 42 of the 50 models voted `agonist`. Because the vote and the mean
-probability are computed independently, they can disagree marginally for
-borderline compounds; this is another signal that the prediction is uncertain.
-
-The predicted class is only as meaningful as the pose it rests on: a compound
-whose best docking score is poor, or whose binding mode is implausible, will
-still receive a confident-looking label. Inspect the docking results before
-acting on a prediction.
-
-## Troubleshooting
-
-| Symptom | Cause |
-|---------|-------|
-| `Missing N required column(s)` | The fingerprint CSV does not match the 176-bit reference layout; check the residue naming produced by step 2 |
-| `KNIME exited with an error` | Read the KNIME log printed above the message; a missing Weka or Optimization extension is the usual cause |
-| `KNIME did not write any predictions` | KNIME started but the workflow did not reach the CSV Writer; re-run with `--keep-temp` and open the query set it was given |
-| `no prediction for N compound(s)` | The query set and the prediction table are out of step; the files do not belong to the same run |
-
 ## Citation
 
 If you use this code, please cite:
@@ -219,11 +179,4 @@ If you use this code, please cite:
 > *Explainable Machine Learning Reveals the Molecular Determinants of CB2R
 > Functional Modulation* — reference to be completed on publication.
 
-Structures used to build the docking grids:
 
-> Li X, Hua T, Vemuri K, et al. Crystal Structure of the Human Cannabinoid
-> Receptor CB2. *Cell* 176:459–467.e13 (2019). doi:10.1016/j.cell.2018.12.011
-
-## License
-
-To be defined.
